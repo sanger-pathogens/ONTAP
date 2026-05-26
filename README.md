@@ -7,195 +7,266 @@
 [![run with docker](https://img.shields.io/badge/run%20with-docker-0db7ed?labelColor=000000&logo=docker)](https://www.docker.com/)
 [![run with singularity](https://img.shields.io/badge/run%20with-singularity-1d355c.svg?labelColor=000000)](https://sylabs.io/docs/)
 
-A Nextflow pipeline for basecalling, read mapping, QC, variant calling and analysis of nanopore multiplex amplicon data.
+[[_TOC_]]
+
+## Pipeline overview
+
+ONTAP is a Nextflow DSL2 pipeline for basecalling, read mapping, QC, variant calling, and phylogenetic analysis of nanopore multiplex amplicon data. It is designed for STI and epidemic pathogen genomics workflows using Oxford Nanopore long reads.
+
+The pipeline carries out the following steps:
+
+1. **Basecalling** — converts raw FAST5/POD5 signal data to reads using Dorado, followed by demultiplexing by barcode
+2. **Pre-mapping QC** — FastQC on raw and adapter-trimmed reads; PycoQC on sequencing summary
+3. **Adapter and primer trimming** — removes adapters and primers with Cutadapt, filtering reads by length
+4. **Mapping** — aligns trimmed reads to the reference using Minimap2; sorts and indexes with SAMtools
+5. **Post-mapping filtering** — separates on-target from off-target reads using the target regions BED file
+6. **Post-mapping QC** — coverage reporting over defined amplicon regions (BEDtools + SAMtools depth); read-length distribution
+7. **Variant calling** — per-sample SNP calling with Clair3 (haploid mode, gVCF output); gVCF merging with BCFtools
+8. **Consensus curation** — constructs per-sample consensus FASTA sequences from gVCF output
+9. **Phylogenetics** — builds a maximum-likelihood phylogenetic tree with RAxML-NG (optional recombination removal)
+10. **Reporting** — MultiQC report aggregating QC metrics across all samples
 
 ![flowchart](images/ampliseq_pipeline.jpg)
 
-For tool versions please see the processes within the 'modules' directory.
+## Usage
 
-## Installation
-1. [Install Nextflow](https://www.nextflow.io/docs/latest/install.html)
+### Quickstart
 
-2. [Install Docker](https://docs.docker.com/engine/install/)
+#### Installation
 
-3. Download the appropriate Dorado installer from the [repo](https://github.com/nanoporetech/dorado#installation). The path to the executable will be ```<path to downloaded folder>/bin/dorado```
+Before running ONTAP, install the following dependencies:
 
-4. (Optional) Download the appropriate Dorado model from the [repo](https://github.com/nanoporetech/dorado/#available-basecalling-models)
-    ```
+1. [Install Nextflow](https://www.nextflow.io/docs/latest/install.html) (version >= 24.04.2)
+
+2. [Install Docker](https://docs.docker.com/engine/install/) (required for the `docker` and `laptop` profiles)
+
+3. Download the appropriate Dorado installer from the [Dorado repository](https://github.com/nanoporetech/dorado#installation). The path to the executable will be `<path to downloaded folder>/bin/dorado`.
+
+4. (Optional) Download the appropriate Dorado basecalling model from the [Dorado repository](https://github.com/nanoporetech/dorado/#available-basecalling-models):
+    ```bash
     # Download all models
     dorado download --model all
-    # Download particular model
+    # Download a particular model
     dorado download --model <model>
     ```
-    If a pre-downloaded model path is not provided to the pipeline, the model specified by the `--basecall_model` parameter will be downloaded on the fly.
+    If a pre-downloaded model path is not provided, the model specified by `--basecall_model` will be downloaded automatically during the run.
 
-5. Download the appropriate Clair3 model from the [Rerio repo](https://github.com/nanoporetech/rerio?tab=readme-ov-file#clair3-models) (you will need Python3)
-    
-    First clone the repo:
-    ```
+5. Download the appropriate Clair3 model from the [Rerio repository](https://github.com/nanoporetech/rerio?tab=readme-ov-file#clair3-models) (requires Python 3):
+    ```bash
+    # Clone the Rerio repo
     git clone https://github.com/nanoporetech/rerio
-    ```
-    This contains scripts to download the model(s) to ```clair3_models/<config>```
-    ```
-    #  Download all models
+
+    # Download all Clair3 models
     python3 download_model.py --clair3
-    #  Download particular model
+    # Or download a particular model
     python3 download_model.py --clair3 clair3_models/<config>_model
     ```
-    Each downloaded model can be found in the repo directory under ```clair3_models/<config>```
+    The downloaded model will be found at `clair3_models/<config>` within the Rerio directory. The recommended model for the default basecalling configuration is `r1041_e82_400bps_hac_v430`.
 
-6. Clone the repository with required submodules
-    
-    ```
+6. Clone the ONTAP repository with its required submodules:
+    ```bash
     git clone --recurse-submodules https://github.com/sanger-pathogens/ONTAP.git
     ```
 
-## Usage
-```
+#### From source code
+
+After completing the installation steps above, run the pipeline from the cloned repository. Replace the placeholder values with absolute paths appropriate for your system.
+
+**With Docker** (`-profile docker`):
+
+```bash
 nextflow run ONTAP/main.nf \
---raw_read_dir <directory containing FAST5/POD5 files> \
---reference <reference fasta> \
---primers <fasta containing primers> \
---target_regions_bed <BED file containing target regions> \
---additional_metadata <CSV mapping sample IDs to barcodes> \
---dorado_local_path <absolute path to Dorado executable> \
---clair3_model <path to Clair3 model> \
--profile docker
+    --raw_read_dir <directory containing FAST5/POD5 files> \
+    --reference <reference FASTA> \
+    --primers <FASTA containing primers> \
+    --target_regions_bed <BED file of target regions> \
+    --additional_metadata <CSV mapping sample IDs to barcodes> \
+    --dorado_local_path <absolute path to Dorado executable> \
+    --clair3_model <path to Clair3 model> \
+    -profile docker
 ```
-The [examples](examples) folder contains some example files.
 
-Instead of `-profile docker`, you can run the pipeline with `-profile laptop`. As well as enabling docker, the laptop profile allows the pipeline to be used offline by providing a local copy of a configuration file that is otherwise downloaded.
+The [examples](examples) folder contains example input files.
 
-Should you need to run the pipeline offline, it is best to make use of pre-populated dependency caches. These can be created with any of the supported profiles (e.g. `-profile docker`) by running the pipeline once to completion. You will also need to provide a `--basecall_model_path` (see step 4 [above](#installation))- the laptop profile includes a default local path for this, as well as `--clair3_model` and `--dorado_local_path`.
+**With the laptop profile** (`-profile laptop`):
 
-You can override the default paths using the command line parameters directly when invoking nextflow or by supplying an additional config file in which these parameters are set, using the `-c my_custom.config` nextflow option.
+The `laptop` profile enables Docker and supports offline operation. It sets default local paths for Dorado, the basecalling model, and the Clair3 model (under `/Users/Shared/ampliseq/`). You can override any of these defaults on the command line or via a custom config file (`-c my_custom.config`).
+
+```bash
+nextflow run ONTAP/main.nf \
+    --raw_read_dir <directory containing FAST5/POD5 files> \
+    --reference <reference FASTA> \
+    --primers <FASTA containing primers> \
+    --target_regions_bed <BED file of target regions> \
+    --additional_metadata <CSV mapping sample IDs to barcodes> \
+    -profile laptop
+```
 
 #### Demo
 
-To run a short demo please follow the instructions found in the demo document: [Here](demo/Demo.md)
+To run a short demo using a Zenodo dataset, follow the instructions in [demo/Demo.md](demo/Demo.md).
 
-### Other parameters:
+#### Using on the Sanger farm
 
-#### Basecalling
-- --basecall = "true"
-- --basecall_model = "dna_r10.4.1_e8.2_400bps_hac@v4.3.0"
-- --basecall_model_path = ""
-- --trim_adapters = "all"
-- --barcode_kit_name = ["SQK-NBD114-24"] (currently this can only be edited via the config file)
-- --read_format = "fastq"
+Load the required modules:
 
-#### Saving output files
-- --keep_sorted_bam = true
-- --save_fastqs = true
-- --save_trimmed = true
-- --save_too_short = true
-- --save_too_long = true
-
-#### QC
-- --qc_reads = true
-- --min_qscore = 9
-- --cutadapt_args = "-e 0.15 --no-indels --overlap 18"
-- --lower_read_length_cutoff = 450
-- --upper_read_length_cutoff = 800
-- --coverage_reporting_thresholds = "1,2,8,10,25,30,40,50,100"
-- --coverage_filtering_threshold = "25"
-- --multiqc_config = ""
-
-#### Variant calling
-- --clair3_min_coverage = "5"
-- --masking_quality = "15"
-
-###### Consensus curation
-- --min_ref_gt_qual = 1
-- --min_alt_gt_qual = 1
-
-###### Tree building
-- --remove_recombination = false
-- --raxml_base_model = 'GTR+G4'
-- --raxml_threads = 2
-
-
-## Running on Sanger farm
-
-Load nextflow and singularity modules:
 ```bash
 module load nextflow ISG/singularity
 ```
 
-Follow steps 5 and 6 [above](#installation) to download a Clair3 model and clone the repo.
+Follow installation steps 5 and 6 above to download a Clair3 model and clone the repository.
 
-Usage is slightly different (you use the standard profile and don't need `--dorado_local_path`):
+Submit the Nextflow master process as an LSF job in the oversubscribed queue:
+
 ```bash
-nextflow run ONTAP/main.nf \
---raw_read_dir <directory containing FAST5/POD5 files> \
---reference <reference fasta> \
---primers <fasta containing primers> \
---target_regions_bed <BED file containing target regions> \
---additional_metadata <CSV mapping sample IDs to barcodes> \
---clair3_model <path to Clair3 model> \
--profile standard
+bsub -o output.o -e error.e -q oversubscribed -R "select[mem>4000] rusage[mem=4000]" -M4000 \
+    nextflow run ONTAP/main.nf \
+        --raw_read_dir <directory containing FAST5/POD5 files> \
+        --reference <reference FASTA> \
+        --primers <FASTA containing primers> \
+        --target_regions_bed <BED file of target regions> \
+        --additional_metadata <CSV mapping sample IDs to barcodes> \
+        --clair3_model <path to Clair3 model> \
+        -profile standard
 ```
 
-The standard profile is intended to allow the pipeline to run (with internet access) on the Sanger HPC (farm). It ensures the pipeline can run with the LSF job scheduler and uses singularity images for dependencies management, as well as the latest versions of the pipeline base configuration (from [PaM Info common config file](https://github.com/sanger-pathogens/nextflow-commons/blob/master/configs/nextflow.config)) and Dorado models.
+Once the run is complete, clean up intermediate files:
 
-It's best to run the pipeline as a job in the oversubscribed queue i.e. preface the command with this:
-```bash
-bsub -o output.o -e error.e -q oversubscribed -R "select[mem>4000] rusage[mem=4000]" -M4000
-```
-
-Once your job has finished and you're happy with the output, clean up any intermediate files. To do this (assuming no other pipelines are running from the current working directory), run:
 ```bash
 rm -rf work .nextflow*
 ```
-## OS requirements
 
-The pipeline has been tested on multiple operating systems
+### Input
 
-Linux: Ubuntu 18.04 + 22.04 (Singularity and Docker profiles) Mac OSX (Laptop profile)
+The following inputs are required for every run:
 
-## Hardware requirements
+| Parameter | Description |
+| --- | --- |
+| `--raw_read_dir` | Directory containing raw FAST5 or POD5 files from the sequencer. |
+| `--reference` | Reference genome in FASTA format to align reads against. |
+| `--primers` | FASTA file containing primer sequences used to generate the amplicons. Used by Cutadapt for primer trimming. |
+| `--target_regions_bed` | BED file defining the amplicon target regions. Used for on-target filtering and coverage reporting. |
+| `--additional_metadata` | CSV file mapping sample IDs to barcodes. Must contain at minimum `barcode_kit` and `barcode` columns. |
+| `--clair3_model` | Absolute path to a locally downloaded Clair3 model directory (see [Installation](#installation) step 5). |
+| `--dorado_local_path` | Absolute path to the Dorado executable. Required when using `docker` or `laptop` profiles. Not required on the Sanger farm. |
 
-This pipeline requires only a standard modern computer with enough RAM/CPU power to support running the standard tools. There are checks within the pipeline to determine max resources avaliable to ensure sensible resource requests.
+Optional inputs:
 
-The most taxing sections of the pipeline are:
+| Parameter | Description |
+| --- | --- |
+| `--basecall_model_path` | Path to a pre-downloaded Dorado basecalling model. If not provided, the model is downloaded automatically. |
+| `--multiqc_config` | Path to a custom MultiQC configuration file. |
 
-- FastQC
-- Minimap2
-- RAXML-NG
-- Clair3
+### Output
 
-The pipeline will run without GPU support; however, access to GPU hardware (one that is supported by Dorado; see [here](https://github.com/nanoporetech/dorado?tab=readme-ov-file#platforms)) will result in a much faster runtime.
+The pipeline writes all results to `--outdir` (default: `results`):
 
-## Approximate runtime
+| Directory | Contents |
+| --- | --- |
+| `fastqs/` | Basecalled reads per sample in FASTQ format |
+| `cutadapt/` | Trimmed reads, too-short reads, and too-long reads |
+| `mapped_reads/` | Sorted BAM files per sample aligned to the reference |
+| `sequencing_summary/` | Dorado sequencing summary TSV |
+| `qc/` | FastQC reports, PycoQC report, SAMtools stats, coverage summaries, and read-length distributions |
+| `variants/` | Per-sample Clair3 gVCF and VCF files; merged gVCF and variant TSV |
+| `curated_consensus/` | Per-sample consensus FASTA sequences |
+| `multiqc/` | Aggregated MultiQC HTML report |
 
-When executed in **laptop mode**, a full analysis run including basecalling is typically expected to complete in approximately 10–12 hours. However, this estimate is highly sensitive to sequencing depth; larger input datasets can significantly extend basecalling time. To optimize runtime, we recommend adjusting Dorado basecalling accuracy parameters in accordance with your performance requirements (fast, hac, sup)
+### Parameters
 
-In **HPC** environments utilizing Singularity containers with GPU acceleration, runtimes are substantially reduced. Under optimal conditions, end-to-end processing has been observed to complete in as little as 40 minutes, and up to 1.5 hours for typical runs. This is however depending on input size and GPU availability.
+**Reference files (mandatory)**
 
-> **_Note_** On first-time runs, where none of the required tools are cached, the initial setup (including downloading dpendency software and models) introduces an additional overhead of approximately 10 minutes.
+| Option | Default | Description |
+| --- | --- | --- |
+| `--raw_read_dir` | `""` | Directory containing raw FAST5/POD5 files. |
+| `--reference` | `""` | Path to the reference genome FASTA. |
+| `--primers` | `""` | Path to the primer sequences FASTA. |
+| `--target_regions_bed` | `""` | Path to the BED file defining target amplicon regions. |
+| `--additional_metadata` | `""` | Path to CSV mapping sample IDs to barcodes. |
 
-## Dependencies
+---
 
-| Tool            | Version | Container                                            |
-| --------------- | ------- | ---------------------------------------------------- |
-| bcftools        | 1.20    | quay.io/biocontainers/bcftools1.20--h8b25389_0       |
-| bedtools        | 2.31.1  | quay.io/biocontainers/bedtools:2.31.1--hf5e1c6e_1    |
-| clair3          | v1.0.9  | hkubal/clair3:v1.0.9                                 |
-| pysam           | 0.0.2   | quay.io/sangerpathogens/pysam:0.0.2                  |
-| pandas          | 2.2.1   | quay.io/sangerpathogens/pandas:2.2.1                 |
-| python_graphics | 1.0.0   | quay.io/sangerpathogens/python_graphics:1.0.0        |
-| cutadapt        | 4.7     | quay.io/biocontainers/cutadapt:4.7--py310h4b81fae_1  |
-| cuda_dorado     | 0.7.1   | quay.io/sangerpathogens/cuda_dorado:0.7.1 (SEE NOTE) |
-| fastqc          | 0.12.1  | quay.io/biocontainers/fastqc:0.12.1--hdfd78af_0      |
-| ubuntu          | 20.04   | ubuntu:20.04                                         |
-| minimap2        | 2.26    | quay.io/biocontainers/minimap2:2.26--he4a0461_2      |
-| multiqc         | 1.22.2  | quay.io/biocontainers/multiqc:1.22.2--pyhdfd78af_0   |
-| pod5            | 0.3.6   | quay.io/sangerpathogens/pod5:0.3.6                   |
-| pycoqc          | 2.5.2   | quay.io/biocontainers/pycoqc:2.5.2--py_0             |
-| samtools        | 1.19.2  | quay.io/biocontainers/samtools:1.19.2--h50ea8bc_1    |
-| seqtk           | 1.4     | quay.io/biocontainers/seqtk:1.4--he4a0461_2          |
+**Basecalling**
 
-> **_NOTE_** however we suggest you install your own version of dorado to match your OS
+| Option | Default | Description |
+| --- | --- | --- |
+| `--basecall` | `true` | Enable basecalling. |
+| `--basecall_model` | `dna_r10.4.1_e8.2_400bps_hac@v4.3.0` | Dorado basecalling model. Must match the flow cell and chemistry used. |
+| `--basecall_model_path` | `""` | Path to a pre-downloaded Dorado model. If empty, the model is downloaded automatically. |
+| `--dorado_local_path` | `""` | Absolute path to a locally installed Dorado executable. |
+| `--trim_adapters` | `all` | Adapter/primer trimming mode passed to Dorado. |
+| `--min_qscore` | `9` | Minimum Phred quality score for read filtering during basecalling. |
+| `--read_format` | `fastq` | Output format for basecalled reads. |
 
-## Support
-Please contact PaM Informatics for support through our [helpdesk portal](https://jira.sanger.ac.uk/servicedesk/customer/portal/16) or for external users please reach out by email: pam-informatics@sanger.ac.uk
+---
+
+**QC**
+
+| Option | Default | Description |
+| --- | --- | --- |
+| `--cutadapt_args` | `"-e 0.15 --no-indels --overlap 18"` | Additional arguments passed to Cutadapt for primer trimming. |
+| `--lower_read_length_cutoff` | `450` | Minimum read length (bp) after primer trimming. |
+| `--upper_read_length_cutoff` | `800` | Maximum read length (bp) after primer trimming. |
+| `--coverage_reporting_thresholds` | `"1,2,8,10,25,30,40,50,100"` | Comma-separated depth thresholds for per-amplicon coverage reporting. |
+| `--coverage_filtering_threshold` | `"25"` | Minimum mean coverage depth for a sample to pass filtering. |
+
+---
+
+**Variant calling**
+
+| Option | Default | Description |
+| --- | --- | --- |
+| `--clair3_model` | `""` | Path to the locally downloaded Clair3 model directory. |
+| `--clair3_min_coverage` | `"8"` | Minimum read depth required to call a variant with Clair3. |
+| `--masking_quality` | `15` | Phred quality score threshold for base masking. Bases below this score are replaced with N. |
+
+---
+
+**Tree building**
+
+| Option | Default | Description |
+| --- | --- | --- |
+| `--remove_recombination` | `false` | Remove recombination events before building the phylogenetic tree. |
+| `--raxml_base_model` | `GTR+G4` | Substitution model used by RAxML-NG. |
+| `--raxml_threads` | `2` | Number of threads allocated to RAxML-NG. |
+
+### Dependencies
+
+The following dependencies must be installed separately before running the pipeline:
+
+- **Dorado** — the Oxford Nanopore basecaller. Download from the [Dorado GitHub releases](https://github.com/nanoporetech/dorado#installation) and supply the path via `--dorado_local_path`. On the Sanger farm, the containerised version is used automatically.
+
+- **Clair3 model** — the statistical model used for variant calling. Download via the [Rerio repository](https://github.com/nanoporetech/rerio) and supply the path via `--clair3_model`. The recommended model for the default basecalling configuration is `r1041_e82_400bps_hac_v430`.
+
+All other pipeline dependencies are containerised and pulled automatically.
+
+## Software versions
+
+| Tool | Version | Container |
+| --- | --- | --- |
+| bcftools | 1.20 | `quay.io/biocontainers/bcftools:1.20--h8b25389_0` |
+| bedtools | 2.31.1 | `quay.io/biocontainers/bedtools:2.31.1--hf5e1c6e_1` |
+| clair3 | v1.0.9 | `hkubal/clair3:v1.0.9` |
+| cutadapt | 4.7 | `quay.io/biocontainers/cutadapt:4.7--py310h4b81fae_1` |
+| cuda_dorado | 0.7.1 | `quay.io/sangerpathogens/cuda_dorado:0.7.1` |
+| fastqc | 0.12.1 | `quay.io/biocontainers/fastqc:0.12.1--hdfd78af_0` |
+| minimap2 | 2.26 | `quay.io/biocontainers/minimap2:2.26--he4a0461_2` |
+| multiqc | 1.22.2 | `quay.io/biocontainers/multiqc:1.22.2--pyhdfd78af_0` |
+| pod5 | 0.3.6 | `quay.io/sangerpathogens/pod5:0.3.6` |
+| pycoqc | 2.5.2 | `quay.io/biocontainers/pycoqc:2.5.2--py_0` |
+| samtools | 1.19.2 | `quay.io/biocontainers/samtools:1.19.2--h50ea8bc_1` |
+| seqtk | 1.4 | `quay.io/biocontainers/seqtk:1.4--he4a0461_2` |
+
+## Troubleshooting
+
+- **Runtime performance**: a full analysis run including basecalling typically takes 10–12 hours in laptop/Docker mode, and 40 minutes to 1.5 hours on the Sanger HPC with GPU access. Choosing a faster Dorado model (e.g. `fast`) will reduce basecalling time.
+- **GPU support**: the pipeline runs without a GPU, but Dorado basecalling is substantially faster with GPU hardware. See the [Dorado documentation](https://github.com/nanoporetech/dorado?tab=readme-ov-file#platforms) for supported GPU platforms.
+- **Offline operation**: use `-profile laptop` for offline runs. Ensure all models are pre-downloaded and their paths are supplied.
+- **Resuming a failed run**: add `-resume` to your command to restart from cached intermediate results.
+- For further help, check the Nextflow log (`.nextflow.log`) and the per-process logs in the `work/` directory. For LSF runs, check `output.o` and `error.e` for the master process.
+
+## Issues and Contributions
+
+If you find an issue with this pipeline, or would like to suggest an improvement, please log an issue or open a pull request on this repository.
+
+If you are at Sanger and need internal support, you can raise an issue on the PAM Freshservice portal: https://sanger.freshservice.com/support/catalog/items/426
