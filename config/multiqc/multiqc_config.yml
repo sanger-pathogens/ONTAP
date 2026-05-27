@@ -76,7 +76,6 @@ custom_plot_config:
   fastqc_per_base_sequence_quality_plot-1:
     title: "FastQC: Mean Base Quality Scores"
 
-
 # Customise the module search patterns to speed up execution time
 #  - Skip module sub-tools that we are not interested in
 #  - Replace file-content searching with filename pattern searching
