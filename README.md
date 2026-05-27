@@ -43,30 +43,34 @@ Before running ONTAP, install the following dependencies:
 3. Download the appropriate Dorado installer from the [Dorado repository](https://github.com/nanoporetech/dorado#installation). The path to the executable will be `<path to downloaded folder>/bin/dorado`.
 
 4. (Optional) Download the appropriate Dorado basecalling model from the [Dorado repository](https://github.com/nanoporetech/dorado/#available-basecalling-models):
-    ```bash
-    # Download all models
-    dorado download --model all
-    # Download a particular model
-    dorado download --model <model>
-    ```
-    If a pre-downloaded model path is not provided, the model specified by `--basecall_model` will be downloaded automatically during the run.
+
+   ```bash
+   # Download all models
+   dorado download --model all
+   # Download a particular model
+   dorado download --model <model>
+   ```
+
+   If a pre-downloaded model path is not provided, the model specified by `--basecall_model` will be downloaded automatically during the run.
 
 5. Download the appropriate Clair3 model from the [Rerio repository](https://github.com/nanoporetech/rerio?tab=readme-ov-file#clair3-models) (requires Python 3):
-    ```bash
-    # Clone the Rerio repo
-    git clone https://github.com/nanoporetech/rerio
 
-    # Download all Clair3 models
-    python3 download_model.py --clair3
-    # Or download a particular model
-    python3 download_model.py --clair3 clair3_models/<config>_model
-    ```
-    The downloaded model will be found at `clair3_models/<config>` within the Rerio directory. The recommended model for the default basecalling configuration is `r1041_e82_400bps_hac_v430`.
+   ```bash
+   # Clone the Rerio repo
+   git clone https://github.com/nanoporetech/rerio
+
+   # Download all Clair3 models
+   python3 download_model.py --clair3
+   # Or download a particular model
+   python3 download_model.py --clair3 clair3_models/<config>_model
+   ```
+
+   The downloaded model will be found at `clair3_models/<config>` within the Rerio directory. The recommended model for the default basecalling configuration is `r1041_e82_400bps_hac_v430`.
 
 6. Clone the ONTAP repository with its required submodules:
-    ```bash
-    git clone --recurse-submodules https://github.com/sanger-pathogens/ONTAP.git
-    ```
+   ```bash
+   git clone --recurse-submodules https://github.com/sanger-pathogens/ONTAP.git
+   ```
 
 #### From source code
 
@@ -140,95 +144,95 @@ rm -rf work .nextflow*
 
 The following inputs are required for every run:
 
-| Parameter | Description |
-| --- | --- |
-| `--raw_read_dir` | Directory containing raw FAST5 or POD5 files from the sequencer. |
-| `--reference` | Reference genome in FASTA format to align reads against. |
-| `--primers` | FASTA file containing primer sequences used to generate the amplicons. Used by Cutadapt for primer trimming. |
-| `--target_regions_bed` | BED file defining the amplicon target regions. Used for on-target filtering and coverage reporting. |
-| `--additional_metadata` | CSV file mapping sample IDs to barcodes. Must contain at minimum `barcode_kit` and `barcode` columns. |
-| `--clair3_model` | Absolute path to a locally downloaded Clair3 model directory (see [Installation](#installation) step 5). |
-| `--dorado_local_path` | Absolute path to the Dorado executable. Required when using `docker` or `laptop` profiles. Not required on the Sanger farm. |
+| Parameter               | Description                                                                                                                 |
+| ----------------------- | --------------------------------------------------------------------------------------------------------------------------- |
+| `--raw_read_dir`        | Directory containing raw FAST5 or POD5 files from the sequencer.                                                            |
+| `--reference`           | Reference genome in FASTA format to align reads against.                                                                    |
+| `--primers`             | FASTA file containing primer sequences used to generate the amplicons. Used by Cutadapt for primer trimming.                |
+| `--target_regions_bed`  | BED file defining the amplicon target regions. Used for on-target filtering and coverage reporting.                         |
+| `--additional_metadata` | CSV file mapping sample IDs to barcodes. Must contain at minimum `barcode_kit` and `barcode` columns.                       |
+| `--clair3_model`        | Absolute path to a locally downloaded Clair3 model directory (see [Installation](#installation) step 5).                    |
+| `--dorado_local_path`   | Absolute path to the Dorado executable. Required when using `docker` or `laptop` profiles. Not required on the Sanger farm. |
 
 Optional inputs:
 
-| Parameter | Description |
-| --- | --- |
+| Parameter               | Description                                                                                                |
+| ----------------------- | ---------------------------------------------------------------------------------------------------------- |
 | `--basecall_model_path` | Path to a pre-downloaded Dorado basecalling model. If not provided, the model is downloaded automatically. |
-| `--multiqc_config` | Path to a custom MultiQC configuration file. |
+| `--multiqc_config`      | Path to a custom MultiQC configuration file.                                                               |
 
 ### Output
 
 The pipeline writes all results to `--outdir` (default: `results`):
 
-| Directory | Contents |
-| --- | --- |
-| `fastqs/` | Basecalled reads per sample in FASTQ format |
-| `cutadapt/` | Trimmed reads, too-short reads, and too-long reads |
-| `mapped_reads/` | Sorted BAM files per sample aligned to the reference |
-| `sequencing_summary/` | Dorado sequencing summary TSV |
-| `qc/` | FastQC reports, PycoQC report, SAMtools stats, coverage summaries, and read-length distributions |
-| `variants/` | Per-sample Clair3 gVCF and VCF files; merged gVCF and variant TSV |
-| `curated_consensus/` | Per-sample consensus FASTA sequences |
-| `multiqc/` | Aggregated MultiQC HTML report |
+| Directory             | Contents                                                                                         |
+| --------------------- | ------------------------------------------------------------------------------------------------ |
+| `fastqs/`             | Basecalled reads per sample in FASTQ format                                                      |
+| `cutadapt/`           | Trimmed reads, too-short reads, and too-long reads                                               |
+| `mapped_reads/`       | Sorted BAM files per sample aligned to the reference                                             |
+| `sequencing_summary/` | Dorado sequencing summary TSV                                                                    |
+| `qc/`                 | FastQC reports, PycoQC report, SAMtools stats, coverage summaries, and read-length distributions |
+| `variants/`           | Per-sample Clair3 gVCF and VCF files; merged gVCF and variant TSV                                |
+| `curated_consensus/`  | Per-sample consensus FASTA sequences                                                             |
+| `multiqc/`            | Aggregated MultiQC HTML report                                                                   |
 
 ### Parameters
 
 **Reference files (mandatory)**
 
-| Option | Default | Description |
-| --- | --- | --- |
-| `--raw_read_dir` | `""` | Directory containing raw FAST5/POD5 files. |
-| `--reference` | `""` | Path to the reference genome FASTA. |
-| `--primers` | `""` | Path to the primer sequences FASTA. |
-| `--target_regions_bed` | `""` | Path to the BED file defining target amplicon regions. |
-| `--additional_metadata` | `""` | Path to CSV mapping sample IDs to barcodes. |
+| Option                  | Default | Description                                            |
+| ----------------------- | ------- | ------------------------------------------------------ |
+| `--raw_read_dir`        | `""`    | Directory containing raw FAST5/POD5 files.             |
+| `--reference`           | `""`    | Path to the reference genome FASTA.                    |
+| `--primers`             | `""`    | Path to the primer sequences FASTA.                    |
+| `--target_regions_bed`  | `""`    | Path to the BED file defining target amplicon regions. |
+| `--additional_metadata` | `""`    | Path to CSV mapping sample IDs to barcodes.            |
 
 ---
 
 **Basecalling**
 
-| Option | Default | Description |
-| --- | --- | --- |
-| `--basecall` | `true` | Enable basecalling. |
-| `--basecall_model` | `dna_r10.4.1_e8.2_400bps_hac@v4.3.0` | Dorado basecalling model. Must match the flow cell and chemistry used. |
-| `--basecall_model_path` | `""` | Path to a pre-downloaded Dorado model. If empty, the model is downloaded automatically. |
-| `--dorado_local_path` | `""` | Absolute path to a locally installed Dorado executable. |
-| `--trim_adapters` | `all` | Adapter/primer trimming mode passed to Dorado. |
-| `--min_qscore` | `9` | Minimum Phred quality score for read filtering during basecalling. |
-| `--read_format` | `fastq` | Output format for basecalled reads. |
+| Option                  | Default                              | Description                                                                             |
+| ----------------------- | ------------------------------------ | --------------------------------------------------------------------------------------- |
+| `--basecall`            | `true`                               | Enable basecalling.                                                                     |
+| `--basecall_model`      | `dna_r10.4.1_e8.2_400bps_hac@v4.3.0` | Dorado basecalling model. Must match the flow cell and chemistry used.                  |
+| `--basecall_model_path` | `""`                                 | Path to a pre-downloaded Dorado model. If empty, the model is downloaded automatically. |
+| `--dorado_local_path`   | `""`                                 | Absolute path to a locally installed Dorado executable.                                 |
+| `--trim_adapters`       | `all`                                | Adapter/primer trimming mode passed to Dorado.                                          |
+| `--min_qscore`          | `9`                                  | Minimum Phred quality score for read filtering during basecalling.                      |
+| `--read_format`         | `fastq`                              | Output format for basecalled reads.                                                     |
 
 ---
 
 **QC**
 
-| Option | Default | Description |
-| --- | --- | --- |
-| `--cutadapt_args` | `"-e 0.15 --no-indels --overlap 18"` | Additional arguments passed to Cutadapt for primer trimming. |
-| `--lower_read_length_cutoff` | `450` | Minimum read length (bp) after primer trimming. |
-| `--upper_read_length_cutoff` | `800` | Maximum read length (bp) after primer trimming. |
-| `--coverage_reporting_thresholds` | `"1,2,8,10,25,30,40,50,100"` | Comma-separated depth thresholds for per-amplicon coverage reporting. |
-| `--coverage_filtering_threshold` | `"25"` | Minimum mean coverage depth for a sample to pass filtering. |
+| Option                            | Default                              | Description                                                           |
+| --------------------------------- | ------------------------------------ | --------------------------------------------------------------------- |
+| `--cutadapt_args`                 | `"-e 0.15 --no-indels --overlap 18"` | Additional arguments passed to Cutadapt for primer trimming.          |
+| `--lower_read_length_cutoff`      | `450`                                | Minimum read length (bp) after primer trimming.                       |
+| `--upper_read_length_cutoff`      | `800`                                | Maximum read length (bp) after primer trimming.                       |
+| `--coverage_reporting_thresholds` | `"1,2,8,10,25,30,40,50,100"`         | Comma-separated depth thresholds for per-amplicon coverage reporting. |
+| `--coverage_filtering_threshold`  | `"25"`                               | Minimum mean coverage depth for a sample to pass filtering.           |
 
 ---
 
 **Variant calling**
 
-| Option | Default | Description |
-| --- | --- | --- |
-| `--clair3_model` | `""` | Path to the locally downloaded Clair3 model directory. |
-| `--clair3_min_coverage` | `"8"` | Minimum read depth required to call a variant with Clair3. |
-| `--masking_quality` | `15` | Phred quality score threshold for base masking. Bases below this score are replaced with N. |
+| Option                  | Default | Description                                                                                 |
+| ----------------------- | ------- | ------------------------------------------------------------------------------------------- |
+| `--clair3_model`        | `""`    | Path to the locally downloaded Clair3 model directory.                                      |
+| `--clair3_min_coverage` | `"8"`   | Minimum read depth required to call a variant with Clair3.                                  |
+| `--masking_quality`     | `15`    | Phred quality score threshold for base masking. Bases below this score are replaced with N. |
 
 ---
 
 **Tree building**
 
-| Option | Default | Description |
-| --- | --- | --- |
-| `--remove_recombination` | `false` | Remove recombination events before building the phylogenetic tree. |
-| `--raxml_base_model` | `GTR+G4` | Substitution model used by RAxML-NG. |
-| `--raxml_threads` | `2` | Number of threads allocated to RAxML-NG. |
+| Option                   | Default  | Description                                                        |
+| ------------------------ | -------- | ------------------------------------------------------------------ |
+| `--remove_recombination` | `false`  | Remove recombination events before building the phylogenetic tree. |
+| `--raxml_base_model`     | `GTR+G4` | Substitution model used by RAxML-NG.                               |
+| `--raxml_threads`        | `2`      | Number of threads allocated to RAxML-NG.                           |
 
 ### Dependencies
 
@@ -242,20 +246,20 @@ All other pipeline dependencies are containerised and pulled automatically.
 
 ## Software versions
 
-| Tool | Version | Container |
-| --- | --- | --- |
-| bcftools | 1.20 | `quay.io/biocontainers/bcftools:1.20--h8b25389_0` |
-| bedtools | 2.31.1 | `quay.io/biocontainers/bedtools:2.31.1--hf5e1c6e_1` |
-| clair3 | v1.0.9 | `hkubal/clair3:v1.0.9` |
-| cutadapt | 4.7 | `quay.io/biocontainers/cutadapt:4.7--py310h4b81fae_1` |
-| cuda_dorado | 0.7.1 | `quay.io/sangerpathogens/cuda_dorado:0.7.1` |
-| fastqc | 0.12.1 | `quay.io/biocontainers/fastqc:0.12.1--hdfd78af_0` |
-| minimap2 | 2.26 | `quay.io/biocontainers/minimap2:2.26--he4a0461_2` |
-| multiqc | 1.22.2 | `quay.io/biocontainers/multiqc:1.22.2--pyhdfd78af_0` |
-| pod5 | 0.3.6 | `quay.io/sangerpathogens/pod5:0.3.6` |
-| pycoqc | 2.5.2 | `quay.io/biocontainers/pycoqc:2.5.2--py_0` |
-| samtools | 1.19.2 | `quay.io/biocontainers/samtools:1.19.2--h50ea8bc_1` |
-| seqtk | 1.4 | `quay.io/biocontainers/seqtk:1.4--he4a0461_2` |
+| Tool        | Version | Container                                             |
+| ----------- | ------- | ----------------------------------------------------- |
+| bcftools    | 1.20    | `quay.io/biocontainers/bcftools:1.20--h8b25389_0`     |
+| bedtools    | 2.31.1  | `quay.io/biocontainers/bedtools:2.31.1--hf5e1c6e_1`   |
+| clair3      | v1.0.9  | `hkubal/clair3:v1.0.9`                                |
+| cutadapt    | 4.7     | `quay.io/biocontainers/cutadapt:4.7--py310h4b81fae_1` |
+| cuda_dorado | 0.7.1   | `quay.io/sangerpathogens/cuda_dorado:0.7.1`           |
+| fastqc      | 0.12.1  | `quay.io/biocontainers/fastqc:0.12.1--hdfd78af_0`     |
+| minimap2    | 2.26    | `quay.io/biocontainers/minimap2:2.26--he4a0461_2`     |
+| multiqc     | 1.22.2  | `quay.io/biocontainers/multiqc:1.22.2--pyhdfd78af_0`  |
+| pod5        | 0.3.6   | `quay.io/sangerpathogens/pod5:0.3.6`                  |
+| pycoqc      | 2.5.2   | `quay.io/biocontainers/pycoqc:2.5.2--py_0`            |
+| samtools    | 1.19.2  | `quay.io/biocontainers/samtools:1.19.2--h50ea8bc_1`   |
+| seqtk       | 1.4     | `quay.io/biocontainers/seqtk:1.4--he4a0461_2`         |
 
 ## Troubleshooting
 
