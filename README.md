@@ -267,7 +267,9 @@ All other pipeline dependencies are containerised and pulled automatically.
 - **GPU support**: the pipeline runs without a GPU, but Dorado basecalling is substantially faster with GPU hardware. See the [Dorado documentation](https://github.com/nanoporetech/dorado?tab=readme-ov-file#platforms) for supported GPU platforms.
 - **Offline operation**: use `-profile laptop` for offline runs. Ensure all models are pre-downloaded and their paths are supplied.
 - **Resuming a failed run**: add `-resume` to your command to restart from cached intermediate results.
-- For further help, check the Nextflow log (`.nextflow.log`) and the per-process logs in the `work/` directory. For LSF runs, check `output.o` and `error.e` for the master process.
+- For further help, check `.nextflow.log` and the per-process `.command.log` logs in the `work/` directory.
+
+Sanger users may find [this page](https://ssg-confluence.internal.sanger.ac.uk/spaces/PaMI/pages/181078206/General+pipeline+info#Generalpipelineinfo-Troubleshootingafailedpipelinerunandsendingabugreport) useful for troubleshooting Nextflow pipeline runs.
 
 ## Issues and Contributions
 
