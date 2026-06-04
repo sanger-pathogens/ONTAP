@@ -69,7 +69,7 @@ Before running ONTAP, install the following dependencies:
 
 6. Clone the ONTAP repository with its required submodules:
    ```bash
-   git clone --recurse-submodules https://github.com/sanger-pathogens/ONTAP.git
+   git clone --recurse-submodules <repo-url>
    ```
 
 #### From source code
