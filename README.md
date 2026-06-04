@@ -165,16 +165,68 @@ Optional inputs:
 
 The pipeline writes all results to `--outdir` (default: `results`):
 
-| Directory             | Contents                                                                                         |
-| --------------------- | ------------------------------------------------------------------------------------------------ |
-| `fastqs/`             | Basecalled reads per sample in FASTQ format                                                      |
-| `cutadapt/`           | Trimmed reads, too-short reads, and too-long reads                                               |
-| `mapped_reads/`       | Sorted BAM files per sample aligned to the reference                                             |
-| `sequencing_summary/` | Dorado sequencing summary TSV                                                                    |
-| `qc/`                 | FastQC reports, PycoQC report, SAMtools stats, coverage summaries, and read-length distributions |
-| `variants/`           | Per-sample Clair3 gVCF and VCF files; merged gVCF and variant TSV                                |
-| `curated_consensus/`  | Per-sample consensus FASTA sequences                                                             |
-| `multiqc/`            | Aggregated MultiQC HTML report                                                                   |
+```
+results/
+  sequencing_summary/
+    summary.tsv                             # Dorado sequencing summary
+  fastqs/                                   # Basecalled FASTQ files per sample (if --save_fastqs)
+    <sample_ID>.fastq.gz
+  cutadapt/                                 # Adapter/primer-trimmed reads (if --save_trimmed / --save_too_short / --save_too_long)
+    <sample_ID>_trimmed.fastq.gz
+    <sample_ID>_too_short.fastq.gz
+    <sample_ID>_too_long.fastq.gz
+  sorted_ref/                               # Reference FASTA index
+    <reference>.fai
+  mapped_reads/                             # Sorted BAM per sample (if --keep_sorted_bam); BAI index (if --keep_bam_files)
+    <sample_ID>_sorted.bam
+    <sample_ID>.bai
+  qc/
+    fastqc_pre_trim/
+      <sample_ID>_fastqc.html               # FastQC report on raw reads
+      <sample_ID>_fastqc.zip
+    fastqc_post_trim/
+      <sample_ID>_trimmed_fastqc.html       # FastQC report on trimmed reads
+      <sample_ID>_trimmed_fastqc.zip
+    pycoqc/
+      *                                     # PycoQC basecalling QC report
+    <qc_stage>/
+      readlengths/
+        <sample_ID>.read-lengths.tsv        # Read-length distribution
+      samtools_stats/
+        <sample_ID>.stats                   # SAMtools stats
+        <sample_ID>.flagstats               # SAMtools flagstats
+      coverage/
+        samtools_depth/
+          <sample_ID>_samtools_depth.tsv    # Per-position depth (SAMtools)
+        coverage_summary/
+          *coverage_summary.tsv             # Per-amplicon coverage summary
+          *.html                            # Coverage plot
+        bedtools_genome_coverage/
+          *.bedGraph                        # Genome-wide coverage (BEDtools)
+        bedtools_coverage/
+          *coverage.bed                     # Per-region coverage (BEDtools)
+  variants/
+    <sample_ID>_clair3.gvcf.gz              # Per-sample Clair3 gVCF
+    <sample_ID>_clair3.vcf.gz              # Per-sample Clair3 VCF
+    logs/
+      <sample_ID>_clair3.log               # Clair3 run log
+    merged_gvcf/
+      <run>_<date>_merged.vcf.gz           # Merged gVCF across all samples
+      <run>_<date>_merged.tsv              # Variant table from merged gVCF
+  curated_consensus/
+    <sample_ID>.fasta                       # Per-sample consensus FASTA (multi-locus)
+    <sample_ID>_multi_locus.fasta           # Full multi-locus consensus
+    <sample_ID>_wg.fasta                    # Whole-genome consensus
+  snp_aln/
+    merged.fasta.snp.aln                    # SNP-only alignment (snp-sites)
+  tree/
+    *.support                               # RAxML-NG phylogenetic tree with bootstrap support
+  gubbins/                                  # Gubbins recombination removal outputs (if --remove_recombination)
+    gubbins_out.*
+  multiqc/
+    multiqc_report.html                     # Aggregated MultiQC report
+    multiqc_data/                           # MultiQC data directory
+```
 
 ### Parameters
 
