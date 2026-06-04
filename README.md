@@ -134,7 +134,7 @@ bsub -o output.o -e error.e -q oversubscribed -R "select[mem>4000] rusage[mem=40
         -profile standard
 ```
 
-Once the run is complete, clean up intermediate files:
+Once the run has finished successfully and you have inspected the output, clean up intermediate files. The `work/` directory and `.nextflow.log` are useful for troubleshooting — do not delete them until you are satisfied the outputs are correct:
 
 ```bash
 rm -rf work .nextflow*
