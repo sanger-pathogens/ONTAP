@@ -1,5 +1,4 @@
 process GUNZIP {
-    tag "${meta.ID}"
     label 'cpu_1'
     label 'mem_1'
     label 'time_1'

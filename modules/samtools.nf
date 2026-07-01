@@ -3,8 +3,8 @@ process CONVERT_TO_FASTQ {
     label 'mem_1'
     label 'time_1'
 
-    publishDir path: "${params.outdir}/fastqs/", enabled: params.save_fastqs, mode: 'copy', overwrite: true, pattern: "*.fastq.gz"
-    
+    publishDir path: "${params.outdir}/fastqs/", enabled: (params.save_fastqs in [true, "true"]), mode: 'copy', overwrite: true, pattern: "*.fastq.gz"
+
     conda 'bioconda::samtools=1.19'
     container 'quay.io/biocontainers/samtools:1.19.2--h50ea8bc_1'
 
@@ -12,10 +12,9 @@ process CONVERT_TO_FASTQ {
     tuple val(meta), path(reads_bam)
 
     output:
-    tuple val(meta), path(fastq_output),  emit: reads_fastq
+    tuple val(meta), path(fastq_output), emit: reads_fastq
 
     script:
-    //will likely need thinking here as if we do other methods of sequencing and use this pipeline need the correct out flags
     fastq_output = "${meta.ID}.fastq.gz"
     """
     samtools fastq -@ ${task.cpus} -0 ${fastq_output} ${reads_bam}
@@ -26,7 +25,7 @@ process MERGE_BAMS_FOR_SUMMARY {
     label 'cpu_2'
     label 'mem_1'
     label 'time_1'
-    
+
     conda 'bioconda::samtools=1.19'
     container 'quay.io/biocontainers/samtools:1.19.2--h50ea8bc_1'
 
@@ -34,7 +33,7 @@ process MERGE_BAMS_FOR_SUMMARY {
     path("*.bam")
 
     output:
-    path(combined_bam),  emit: summary_bam
+    path(combined_bam), emit: summary_bam
 
     script:
     combined_bam = "merged.bam"
@@ -71,11 +70,10 @@ process MANAGE_DUPLICATES_FROM_BAMS {
 }
 
 process CONVERT_TO_BAM {
-    tag "${meta.ID}"
     label 'cpu_2'
     label 'mem_1'
     label 'time_30m'
-    
+
     conda 'bioconda::samtools=1.19'
     container 'quay.io/biocontainers/samtools:1.19.2--h50ea8bc_1'
 
@@ -83,7 +81,7 @@ process CONVERT_TO_BAM {
     tuple val(meta), path(mapped_reads)
 
     output:
-    tuple val(meta), path("${mapped_reads_bam}"),  emit: mapped_reads_bam
+    tuple val(meta), path("${mapped_reads_bam}"), emit: mapped_reads_bam
 
     script:
     mapped_reads_bam = "${meta.ID}.bam"
@@ -98,12 +96,11 @@ process CONVERT_TO_BAM {
 }
 
 process SAMTOOLS_SORT {
-    tag "${meta.ID}"
     label 'cpu_4'
     label 'mem_8'
     label 'time_12'
 
-    publishDir "${params.outdir}/mapped_reads", enabled: params.keep_sorted_bam, mode: 'copy', overwrite: true
+    publishDir "${params.outdir}/mapped_reads", enabled: (params.keep_sorted_bam in [true, "true"]), mode: 'copy', overwrite: true
 
     conda 'bioconda::samtools=1.19'
     container 'quay.io/biocontainers/samtools:1.19.2--h50ea8bc_1'
@@ -112,7 +109,7 @@ process SAMTOOLS_SORT {
     tuple val(meta), path(mapped_reads_bam)
 
     output:
-    tuple val(meta), path("${sorted_reads}"),  emit: sorted_reads
+    tuple val(meta), path("${sorted_reads}"), emit: sorted_reads
 
     script:
     sorted_reads = "${meta.ID}_sorted.bam"
@@ -125,7 +122,6 @@ process SAMTOOLS_SORT {
 }
 
 process REMOVE_OFF_TARGET_READS {
-    tag "${meta.ID}"
     label 'cpu_2'
     label 'mem_1'
     label 'time_30m'
@@ -137,8 +133,8 @@ process REMOVE_OFF_TARGET_READS {
     tuple val(meta), path(sorted_reads_bam), path(sorted_reads_bai), path(target_regions_bed)
 
     output:
-    tuple val(meta), path("${on_target_reads_bam}"),  emit: on_target_reads_bam
-    tuple val(meta), path("${off_target_reads_bam}"),  emit: off_target_reads_bam
+    tuple val(meta), path("${on_target_reads_bam}"), emit: on_target_reads_bam
+    tuple val(meta), path("${off_target_reads_bam}"), emit: off_target_reads_bam
 
     script:
     on_target_reads_bam = "${meta.ID}_on_target.bam"
@@ -154,7 +150,6 @@ process REMOVE_OFF_TARGET_READS {
 }
 
 process ON_AND_OFF_TARGET_STATS {
-    tag "${meta.ID}"
     label 'cpu_2'
     label 'mem_1'
     label 'time_30m'
@@ -166,7 +161,7 @@ process ON_AND_OFF_TARGET_STATS {
     tuple val(meta), path(on_target_reads_bam), path(on_target_reads_bai), path(off_target_reads_bam), path(off_target_reads_bai)
 
     output:
-    tuple val(meta), path("${on_and_off_target_stats}"),  emit: on_and_off_target_stats
+    tuple val(meta), path("${on_and_off_target_stats}"), emit: on_and_off_target_stats
 
     script:
     on_and_off_target_stats = "${meta.ID}_on_and_off_target_stats.csv"
@@ -189,7 +184,7 @@ process INDEX_REF {
     path(reference)
 
     output:
-    tuple path(reference), path("${faidx}"),  emit: ref_index
+    tuple path(reference), path("${faidx}"), emit: ref_index
 
     script:
     faidx = "${reference}.fai"
@@ -199,7 +194,6 @@ process INDEX_REF {
 }
 
 process SAMTOOLS_INDEX_BAM {
-    tag "${meta.ID}"
     label 'cpu_2'
     label 'mem_1'
     label 'time_1'
@@ -207,28 +201,26 @@ process SAMTOOLS_INDEX_BAM {
     conda "bioconda::samtools=1.19"
     container "quay.io/biocontainers/samtools:1.19.2--h50ea8bc_1"
 
-    publishDir "${params.outdir}/mapped_reads", enabled: params.keep_bam_files, mode: 'copy', overwrite: true, pattern: "*.bai"
+    publishDir "${params.outdir}/mapped_reads", enabled: (params.keep_bam_files in [true, "true"]), mode: 'copy', overwrite: true, pattern: "*.bai"
 
     input:
     tuple val(meta), path(bam_file)
-    
+
     output:
-    tuple val(meta), path(bam_file), path("*.bai"),  emit: bam_index
-    
+    tuple val(meta), path(bam_file), path("*.bai"), emit: bam_index
+
     script:
     """
     samtools index -@ ${task.cpus} *.bam
     """
 }
 
-
 process GET_READLENGTH_DISTRIBUTION {
-    tag "${meta.ID}"
     label 'cpu_4'
     label 'mem_8'
     label 'time_12'
 
-    publishDir "${params.outdir}/qc/${qc_stage}/readlengths", mode: 'copy', overwrite: true
+    publishDir "${params.outdir}/qc/readlengths", mode: 'copy', overwrite: true
 
     conda 'bioconda::samtools=1.19'
     container 'quay.io/biocontainers/samtools:1.19.2--h50ea8bc_1'
@@ -238,33 +230,32 @@ process GET_READLENGTH_DISTRIBUTION {
     val(qc_stage)
 
     output:
-    tuple val(meta), path("*.read-lengths.tsv"),  emit: readlengths
+    tuple val(meta), path("*.read-lengths.tsv"), emit: readlengths
 
     script:
     """
     samtools view -@ ${task.cpus} ${sorted_bam} | \
     awk '{print length(\$10)}' | sort | uniq -c | sort -n -k 2 | awk -v OFS='\t' '{print \$2,\$1}' \
-    > ${meta.ID}.read-lengths.tsv 
+    > ${meta.ID}.read-lengths.tsv
     """
 }
 
 process SAMTOOLS_DEPTH {
-    tag "${meta.ID}"
     label 'cpu_2'
     label 'mem_1'
     label 'time_1'
 
+    publishDir "${params.outdir}/qc/coverage/samtools_depth", mode: 'copy', overwrite: true
+
     conda "bioconda::samtools=1.19"
     container "quay.io/biocontainers/samtools:1.19.2--h50ea8bc_1"
-
-    publishDir "${params.outdir}/qc/${qc_stage}/coverage/samtools_depth", mode: 'copy', overwrite: true
 
     input:
     tuple val(meta), path(bam_file), path(bam_index)
     val(qc_stage)
 
     output:
-    tuple val(meta), path(coverage_report),  emit: samtools_coverage
+    tuple val(meta), path(coverage_report), emit: samtools_coverage
 
     script:
     coverage_report = "${meta.ID}_samtools_depth.tsv"
@@ -278,7 +269,7 @@ process SAMTOOLS_STATS {
     label 'mem_1'
     label 'time_30m'
 
-    publishDir "${params.outdir}/qc/${qc_stage}/samtools_stats", mode: 'copy', overwrite: true
+    publishDir "${params.outdir}/qc/samtools_stats", mode: 'copy', overwrite: true
 
     conda "bioconda::samtools=1.19"
     container "quay.io/biocontainers/samtools:1.19.2--h50ea8bc_1"
@@ -288,7 +279,7 @@ process SAMTOOLS_STATS {
     val(qc_stage)
 
     output:
-    tuple val(meta), path(stats_file), path(flagstats_file),  emit: stats_ch
+    tuple val(meta), path(stats_file), path(flagstats_file), emit: stats_ch
 
     script:
     stats_file = "${meta.ID}.stats"

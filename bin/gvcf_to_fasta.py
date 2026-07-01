@@ -109,8 +109,11 @@ def expand_variant_blocks(variants, ref_dict):
         expanded_variants[pos] = value[:2]
         if not end_block is None:
             # detects definition of a genotype block
+            contig_len = len(ref_dict[chrom])
             while pos < end_block:
                 pos += 1
+                if pos >= contig_len:   # guard: VCF end_block is 1-based, ref_dict is 0-based
+                    break
                 ref_allele = ref_dict[chrom][pos]
                 expanded_variants[pos] = (ref_allele, ref_allele)
     

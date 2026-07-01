@@ -10,29 +10,38 @@ workflow CALL_VARIANTS {
     reference_index_ch
 
     main:
+    def clair3_model_path = (params.clair3_model ?: "").toString().trim()
+    def target_bed_path   = (params.target_regions_bed ?: "").toString().trim()
+
+    if (!clair3_model_path) {
+        error "CALL_VARIANTS: --clair3_model is required but was not provided"
+    }
+    if (!target_bed_path) {
+        error "CALL_VARIANTS: --target_regions_bed is required but was not provided"
+    }
+
+    def clair3_model_ch = Channel.fromPath(clair3_model_path, checkIfExists: true)
+    def target_bed_ch   = Channel.fromPath(target_bed_path, checkIfExists: true)
+
     filtered_reads_bam_with_bed
-    | combine(reference_index_ch)
-    | combine(Channel.fromPath(params.clair3_model))
-    | CLAIR3_CALL
+        | combine(reference_index_ch)
+        | combine(clair3_model_ch)
+        | CLAIR3_CALL
 
-    GUNZIP( CLAIR3_CALL.out.clair3_gvcf_ref_idx_ch )
-    | combine(Channel.fromPath(params.target_regions_bed))
-    | CURATE_CONSENSUS
+    GUNZIP(CLAIR3_CALL.out.clair3_gvcf_ref_idx_ch)
+        | combine(target_bed_ch)
+        | CURATE_CONSENSUS
 
-    CLAIR3_CALL.out.clair3_gvcf_out.map{ metadata, path -> path }
-    | collect
-    | MERGE_GVCF
-    | BCFTOOLS_QUERY
+    MERGE_GVCF(
+        CLAIR3_CALL.out.clair3_gvcf_out.map { metadata, path -> path }.collect(),
+        target_bed_ch
+    )
 
-    CURATE_CONSENSUS.out.full_consensus.collectFile { meta, file -> [ "merged.fasta", file ] }
-    | CONSTRUCT_PHYLO
+    BCFTOOLS_QUERY(MERGE_GVCF.out.merged_vcf)
 
-    // TO DO / TO REVIEW
-    // integrate use of per-sample, per-locus fasta files THAT HAVE REF BASES WHEN UNDEFINED I.E. NO Ns 
-    //CURATE_CONSENSUS.out.per_loci.flatten().map{ loci_fasta -> 
-    //    
-    //}
+    CURATE_CONSENSUS.out.full_consensus.collectFile { meta, file -> ["merged.fasta", file] }
+        | CONSTRUCT_PHYLO
 
     emit:
-    CLAIR3_CALL.out.clair3_gvcf_out
+    clair3_gvcf_out = CLAIR3_CALL.out.clair3_gvcf_out
 }

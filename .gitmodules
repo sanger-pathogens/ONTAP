@@ -1,6 +1,6 @@
 [submodule "lib"]
 	path = lib
-	url = ../nextflowtool.git
+	url = https://github.com/sanger-pathogens/nextflowtool.git
 [submodule "assorted-sub-workflows"]
 	path = assorted-sub-workflows
-	url = ../assorted-sub-workflows.git
+	url = https://github.com/nickjcroucher/assorted-sub-workflows.git

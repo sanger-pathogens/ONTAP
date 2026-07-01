@@ -1,11 +1,10 @@
 process FASTQC {
-    tag "${meta.ID}"
     label 'cpu_2'
     label 'mem_2'
     label 'time_12'
 
-    publishDir "${params.outdir}/qc/fastqc_pre_trim", mode: 'copy', overwrite: true, pattern: "${meta.ID}_fastqc.{html,zip}"
-    publishDir "${params.outdir}/qc/fastqc_post_trim", mode: 'copy', overwrite: true, pattern: "${meta.ID}_trimmed_fastqc.{html,zip}"
+    publishDir "${params.outdir}/qc/fastqc_pre_trim", mode: 'copy', overwrite: true, pattern: "*_fastqc.{html,zip}"
+    publishDir "${params.outdir}/qc/fastqc_post_trim", mode: 'copy', overwrite: true, pattern: "*_trimmed_fastqc.{html,zip}"
 
     container 'quay.io/biocontainers/fastqc:0.12.1--hdfd78af_0'
 
@@ -14,7 +13,7 @@ process FASTQC {
 
     output:
     tuple val(meta), path("*.html"), emit: html
-    tuple val(meta), path("*.zip") , emit: zip
+    tuple val(meta), path("*.zip"),  emit: zip
 
     script:
     """

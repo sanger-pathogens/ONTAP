@@ -10,6 +10,7 @@ process MERGE_GVCF {
 
     input:
     path("variant_vcfs*.gvcf.gz")
+    path(target_regions_bed)
 
     output:
     path(out_vcf), emit: merged_vcf
@@ -22,7 +23,7 @@ process MERGE_GVCF {
     """
     find . -name "*.gvcf.gz" -exec bcftools index "{}" \\;
 
-    bcftools merge -R ${params.target_regions_bed} -0 -o ${out_vcf} -O z -f PASS *.gvcf.gz
+    bcftools merge -R ${target_regions_bed} -0 -o ${out_vcf} -O z -f PASS *.gvcf.gz
     """
 }
 

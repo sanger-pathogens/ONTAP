@@ -1,5 +1,4 @@
 process CURATE_CONSENSUS {
-    tag "${meta.ID}"
     label 'cpu_2'
     label 'mem_1'
     label 'time_1'

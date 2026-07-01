@@ -1,153 +1,161 @@
 {
-    "pipeline": "ONTAP",
-    "params": {
-        "Basecalling": {
-            "basecall": {
-                "default": "true",
-                "help_text": "Enables basecalling to convert raw signal data to nucleotide sequences."
-            },
-            "basecall_model": {
-                "default": "dna_r10.4.1_e8.2_400bps_hac@v4.3.0",
-                "help_text": "Specifies the model for basecalling, which matches specific flow cell and chemistry."
-            },
-            "trim_adapters": {
-                "default": "all",
-                "help_text": "This is the the same as the default behavior. Any detected adapters or primers will be trimmed"
-            },
-            "barcode_kit_name": {
-                "default": ["SQK-NBD114-24"],
-                "help_text": "Specifies the barcode kit used for multiplexing samples."
-            },
-            "read_format": {
-                "default": "fastq",
-                "help_text": "Sets the output format for basecalled reads to FASTQ."
-            },
-            "dorado_local_path": {
-                "default": "",
-                "help_text": "Path to the local Dorado basecaller, if used."
-            }
-        },
-        "Output File Management": {
-            "keep_sorted_bam": {
-                "default": "true",
-                "help_text": "Retain sorted BAM files."
-            },
-            "keep_bam_files": {
-                "default": "false",
-                "help_text": "Save intermediate BAM files."
-            },
-            "save_fastqs": {
-                "default": "true",
-                "help_text": "Save basecalled reads in FASTQ format."
-            },
-            "save_trimmed": {
-                "default": "true",
-                "help_text": "Save reads with adapters trimmed."
-            },
-            "save_too_short": {
-                "default": "true",
-                "help_text": "Save reads that are too short."
-            },
-            "save_too_long": {
-                "default": "true",
-                "help_text": "Save reads that are too long."
-            }
-        },
-        "Quality Control": {
-            "qc_reads": {
-                "default": "true",
-                "help_text": "Perform quality control on reads."
-            },
-            "min_qscore": {
-                "default": 9,
-                "help_text": "Minimum quality score for reads."
-            },
-            "cutadapt_args": {
-                "default": "-e 0.15 --no-indels --overlap 18",
-                "help_text": "Parameters for Cutadapt to trim adapters with specific error tolerance and overlap requirements."
-            },
-            "lower_read_length_cutoff": {
-                "default": 450,
-                "help_text": "Minimum read length after trimming."
-            },
-            "upper_read_length_cutoff": {
-                "default": 800,
-                "help_text": "Maximum read length after trimming."
-            },
-            "coverage_reporting_thresholds": {
-                "default": "1,2,8,10,25,30,40,50,100",
-                "help_text": "Coverage (per-amplicon locus reads depth) thresholds for reporting."
-            },
-            "coverage_filtering_threshold": {
-                "default": "25",
-                "help_text": "Minimum coverage for filtering."
-            },
-            "multiqc_config": {
-                "default": "",
-                "help_text": "Path to MultiQC configuration file. Leave blank to use default"
-            }
-        },
-        "Reference Files": {
-            "reference": {
-                "default": "",
-                "help_text": "Path to the reference genome file. (mandatory)"
-            },
-            "raw_read_dir": {
-                "default": "",
-                "help_text": "Directory containing raw read files. (mandatory)"
-            },
-            "primers": {
-                "default": "",
-                "help_text": "Path to the primer sequences file. (mandatory)"
-            },
-            "target_regions_bed": {
-                "default": "",
-                "help_text": "Path to the BED file with target regions. (mandatory)"
-            },
-            "additional_metadata": {
-                "default": "",
-                "help_text": "Path to the metadata file linking samples to barcodes. (mandatory)"
-            }
-        },
-        "Variant Calling": {
-            "clair3_model": {
-                "default": "",
-                "help_text": "Path to the Clair3 model for variant calling. (mandatory)"
-            },
-            "clair3_min_coverage": {
-                "default": "8",
-                "help_text": "Minimum coverage for variant calling."
-            },
-            "remove_recombination": {
-                "default": "false",
-                "help_text": "Do not remove recombination events."
-            },
-            "raxml_base_model": {
-                "default": "GTR+G4",
-                "help_text": "Base model used by RAxML-NG for phylogenetic analysis; ascertainment bias correction may be added if using SNP-restricted alignment."
-            },
-            "raxml_threads": {
-                "default": 2,
-                "help_text": "Number of threads for RAxML."
-            },
-            "masking_quality": {
-                "default": 15,
-                "help_text": "Quality score minimum for masking. Scores below this will be replaced with a N."
-            }
-        },
-        "LSF Options": {
-            "queue_size": {
-                "default": 50,
-                "help_text": "Maximum number of jobs in the queue."
-            },
-            "submit_rate_limit": {
-                "default": "50/2min",
-                "help_text": "Rate limit for job submissions."
-            },
-            "monochrome_logs": {
-                "default": "false",
-                "help_text": "Logs will not be in monochrome."
-            }
-        }
-    }
+	"pipeline": "ONTAP",
+	"params": {
+		"Basecalling": {
+			"basecall": {
+				"default": "true",
+				"help_text": "Enable basecalling from raw signal input (POD5/FAST5). Set to false when providing pre-basecalled FASTQ input via fastq_dir."
+			},
+			"basecall_model": {
+				"default": "dna_r10.4.1_e8.2_400bps_hac@v4.3.0",
+				"help_text": "Basecalling model. Required when basecall=true; ignored when basecall=false."
+			},
+			"trim_adapters": {
+				"default": "all",
+				"help_text": "Default behavior: any detected adapters or primers will be trimmed."
+			},
+			"barcode_kit_name": {
+				"default": [
+					"SQK-NBD114-24"
+				],
+				"help_text": "Barcode kit used for multiplexing samples."
+			},
+			"read_format": {
+				"default": "fastq",
+				"help_text": "Output format for basecalled reads."
+			},
+			"dorado_local_path": {
+				"default": "",
+				"help_text": "Path to local Dorado binary, if used."
+			}
+		},
+		"Input Files": {
+			"raw_read_dir": {
+				"default": "",
+				"help_text": "Directory containing raw reads (POD5/FAST5). Required when basecall=true."
+			},
+			"fastq_dir": {
+				"default": "",
+				"help_text": "Directory containing pre-basecalled FASTQ files under barcode subdirectories. Required when basecall=false."
+			}
+		},
+		"Output File Management": {
+			"keep_sorted_bam": {
+				"default": "true",
+				"help_text": "Retain sorted BAM files."
+			},
+			"keep_bam_files": {
+				"default": "false",
+				"help_text": "Save intermediate BAM files."
+			},
+			"save_fastqs": {
+				"default": "true",
+				"help_text": "Save basecalled reads in FASTQ format."
+			},
+			"save_trimmed": {
+				"default": "true",
+				"help_text": "Save reads with adapters trimmed."
+			},
+			"save_too_short": {
+				"default": "true",
+				"help_text": "Save reads that are too short."
+			},
+			"save_too_long": {
+				"default": "true",
+				"help_text": "Save reads that are too long."
+			}
+		},
+		"Quality Control": {
+			"qc_reads": {
+				"default": "true",
+				"help_text": "Perform quality control on reads."
+			},
+			"min_qscore": {
+				"default": 9,
+				"help_text": "Minimum quality score for reads."
+			},
+			"cutadapt_args": {
+				"default": "-e 0.15 --no-indels --overlap 18",
+				"help_text": "Parameters for Cutadapt to trim adapters with specific error tolerance and overlap requirements."
+			},
+			"lower_read_length_cutoff": {
+				"default": 450,
+				"help_text": "Minimum read length after trimming."
+			},
+			"upper_read_length_cutoff": {
+				"default": 800,
+				"help_text": "Maximum read length after trimming."
+			},
+			"coverage_reporting_thresholds": {
+				"default": "1,2,8,10,25,30,40,50,100",
+				"help_text": "Coverage (per-amplicon locus read depth) thresholds for reporting."
+			},
+			"coverage_filtering_threshold": {
+				"default": "25",
+				"help_text": "Minimum coverage for filtering."
+			},
+			"multiqc_config": {
+				"default": "",
+				"help_text": "Path to MultiQC configuration file. Leave blank to use default."
+			}
+		},
+		"Reference Files": {
+			"reference": {
+				"default": "",
+				"help_text": "Path to the reference genome file. (mandatory)"
+			},
+			"primers": {
+				"default": "",
+				"help_text": "Path to the primer sequences file. (mandatory)"
+			},
+			"target_regions_bed": {
+				"default": "",
+				"help_text": "Path to the BED file with target regions. (mandatory)"
+			},
+			"additional_metadata": {
+				"default": "",
+				"help_text": "Path to metadata linking samples to barcodes. (mandatory)"
+			}
+		},
+		"Variant Calling": {
+			"clair3_model": {
+				"default": "",
+				"help_text": "Path to the Clair3 model for variant calling. (mandatory)"
+			},
+			"clair3_min_coverage": {
+				"default": "8",
+				"help_text": "Minimum coverage for variant calling."
+			},
+			"remove_recombination": {
+				"default": "false",
+				"help_text": "Do not remove recombination events."
+			},
+			"raxml_base_model": {
+				"default": "GTR+G4",
+				"help_text": "Base model used by RAxML-NG for phylogenetic analysis; ascertainment bias correction may be added if using SNP-restricted alignment."
+			},
+			"raxml_threads": {
+				"default": 2,
+				"help_text": "Number of threads for RAxML."
+			},
+			"masking_quality": {
+				"default": 15,
+				"help_text": "Quality score minimum for masking. Scores below this will be replaced with N."
+			}
+		},
+		"LSF Options": {
+			"queue_size": {
+				"default": 50,
+				"help_text": "Maximum number of jobs in the queue."
+			},
+			"submit_rate_limit": {
+				"default": "50/2min",
+				"help_text": "Rate limit for job submissions."
+			},
+			"monochrome_logs": {
+				"default": "false",
+				"help_text": "Logs will not be in monochrome."
+			}
+		}
+	}
 }
